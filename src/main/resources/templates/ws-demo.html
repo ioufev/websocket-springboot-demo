@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>测试WS</title>
+</head>
+<body>
+
+<div>随机ID：
+  <span id="ws-id">
+
+  </span>
+</div>
+
+<button id="connect">开始连接</button>
+<br/>
+
+<label for="message">发送内容： </label><input id="message" type="text" placeholder="请输入要发送的消息内容">
+<br/>
+<label for="target-id">发送给谁： </label><input id="target-id" type="text" placeholder="请输入要发送给谁">
+<br/>
+<button id="sendButton">发送消息</button>
+<br/>
+
+<label for="back">收到消息： </label><textarea id="back" placeholder="提示消息" style="width: 600px;height: 200px"></textarea>
+
+<br>
+<button id="disconnect">断开连接</button>
+
+<script>
+
+  let sendButton = window.document.getElementById("sendButton");
+  sendButton.addEventListener("click", () => {
+    send();
+  })
+
+  document.getElementById("disconnect").addEventListener("click", () => {
+    closeWebSocket();
+  })
+
+  let websocket;
+  document.getElementById("connect").addEventListener("click" , () =>{
+
+    if(websocket){
+      closeWebSocket()
+    }
+
+    // 随机整数
+    let random = Math.floor(Math.random()*10000);
+    window.document.getElementById("ws-id").innerText = random + '';
+
+
+    //判断当前浏览器是否支持WebSocket，是则创建WebSocket
+    if ('WebSocket' in window) {
+      websocket = new WebSocket("ws://localhost:8080/ws/" + random);
+    }else {
+      alert('当前浏览器 Not support websocket')
+    }
+
+    //连接发生错误的回调方法
+    websocket.onerror = function () {
+      console.log("WebSocket连接发生错误");
+    };
+    //连接成功建立的回调方法
+    websocket.onopen = function () {
+      console.log("WebSocket连接成功");
+    }
+    //接收到消息的回调方法
+    websocket.onmessage = function (event) {
+      console.log(event.data);
+      window.document.getElementById("back").value = event.data;
+    }
+    //连接关闭的回调方法
+    websocket.onclose = function () {
+      console.log("WebSocket连接关闭");
+    }
+  })
+
+  websocket = null;
+
+  //关闭WebSocket连接
+  function closeWebSocket() {
+    websocket.close();
+  }
+  //发送消息
+  function send() {
+    let message = document.getElementById('message').value;
+    let target_id = document.getElementById('target-id').value;
+    if (target_id != ""){
+      websocket.send('target-' + target_id + ':' + message);
+      return;
+    }
+
+    websocket.send(message);
+  }
+
+  //如果websocket连接还没断开就关闭了窗口，后台server端会抛异常。
+  //所以增加监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接
+  window.onbeforeunload = function () {
+    closeWebSocket();
+  }
+
+</script>
+</body>
+</html>
